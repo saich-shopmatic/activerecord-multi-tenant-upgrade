@@ -22,10 +22,11 @@ module ActiveRecord
     end
 
     def get_effective_tenant_id
-      if !public_tenant? && @creating_tenant != MultiTenant.current_tenant_id && klass.try(:scoped_by_tenant?)
+      if @creating_tenant && @creating_tenant != MultiTenant.current_tenant_id && klass.try(:scoped_by_tenant?)
         MultiTenant.warn_attribute_change(self, :creating_tenant, MultiTenant.current_tenant_id, @creating_tenant)
       end
-      public_tenant? ? MultiTenant.current_tenant_id : @creating_tenant
+    ensure
+      MultiTenant.current_tenant_id || @creating_tenant
     end
 
     # TODO: fix me later, once multi tenant issue resolved at has_one association level.
