@@ -22,19 +22,11 @@ module ActiveRecord
     end
 
     def get_effective_tenant_id
-      attr_changed_check = !public_tenant? && @creating_tenant != MultiTenant.current_tenant_id && klass.try(:scoped_by_tenant?)
+      attr_changed_check = @creating_tenant &&
+          (@creating_tenant != MultiTenant.current_tenant_id) &&
+          klass.try(:scoped_by_tenant?)
+
       if attr_changed_check
-        msg = <<-DOC
-        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        Info from #{self.method}: the relation #{self.class}
-        public_tenant?: - #{public_tenant?},
-        @creating_tenant: - #{@creating_tenant},
-        MultiTenant.current_tenant_id - #{ MultiTenant.current_tenant_id},
-        attr_changed_check - #{attr_changed_check},
-        args: #{args.inspect}
-        @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        DOC
-        Rails.logger.info(msg)
         MultiTenant.warn_attribute_change(self, :creating_tenant, MultiTenant.current_tenant_id, @creating_tenant)
       end
       MultiTenant.current_tenant_id || @creating_tenant
