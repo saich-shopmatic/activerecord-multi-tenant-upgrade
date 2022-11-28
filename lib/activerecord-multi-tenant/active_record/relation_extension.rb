@@ -8,8 +8,8 @@ module ActiveRecord
 
     alias :multi_tenant_orig_initialize :initialize
     def initialize(*args)
-      multi_tenant_orig_initialize(*args.first)
       # multi_tenant_orig_initialize(*args, &block)
+      multi_tenant_orig_initialize(*args.first)
       @creating_tenant = MultiTenant.current_tenant_id
       @multi_tenant_disabled = MultiTenant.multi_tenant_disabled?
     end
@@ -22,14 +22,21 @@ module ActiveRecord
     end
 
     def get_effective_tenant_id
+      cur_tenant_id = MultiTenant.current_tenant_id
+      current_tenant_id, @creating_tenant = cur_tenant_id, cur_tenant_id
+      current_tenant_id, @creating_tenant = 0, 0 if public_tenant?
+
       attr_changed_check = @creating_tenant &&
           (@creating_tenant != MultiTenant.current_tenant_id) &&
           klass.try(:scoped_by_tenant?)
 
       if attr_changed_check
-        MultiTenant.warn_attribute_change(self, :creating_tenant, MultiTenant.current_tenant_id, @creating_tenant)
+        MultiTenant.warn_attribute_change(self, :creating_tenant,
+                                          MultiTenant.current_tenant_id,
+                                          @creating_tenant)
       end
-      MultiTenant.current_tenant_id || @creating_tenant
+      Rails.logger.info("get_effective_tenant_id ->: #{current_tenant_id}")
+      current_tenant_id
     end
 
     # TODO: fix me later, once multi tenant issue resolved at has_one association level.
